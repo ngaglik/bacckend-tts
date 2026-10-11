@@ -1,0 +1,23 @@
+@host = http://localhost:9292
+@token = 
+
+### Info & konfigurasi service
+GET {{host}}/health
+
+### Daftar voice (perlu token bila diaktifkan)
+GET {{host}}/voices?token={{token}}
+
+### Panggil nomor antrian (kontrak dipakai erp/backend)
+GET {{host}}/call?number=A003&counter=1&service=Umum&repeat=1&token={{token}}
+
+### Panggil fase sedang diproses (phase=serving)
+GET {{host}}/call?number=A003&counter=1&service=Umum&phase=serving&token={{token}}
+
+### Panggil fase selesai (phase=done)
+GET {{host}}/call?number=A003&counter=1&service=Umum&phase=done&token={{token}}
+
+### Bacakan teks bebas (halaman Uji Suara)
+GET {{host}}/speak?text=Selamat%20pagi%2C%20mohon%20perhatian.&repeat=1&token={{token}}
+
+### Hentikan bacaan
+GET {{host}}/stop?token={{token}}

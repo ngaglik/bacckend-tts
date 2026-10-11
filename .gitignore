@@ -1,0 +1,16 @@
+# .NET artifacts
+obj/
+bin/
+publish/
+
+# Python virtualenv untuk edge-tts
+.venv/
+
+# Log
+*.log
+run.log
+
+# IDE
+.vs/
+.vscode/
+.idea/

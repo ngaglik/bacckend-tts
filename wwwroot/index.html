@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>backend-tts — Text to Speech</title>
+    <style>
+        :root {
+            --bg: #f5f6f8;
+            --card: #ffffff;
+            --line: #e3e6ea;
+            --text: #1f2430;
+            --muted: #6b7280;
+            --accent: #2563eb;
+            --ok: #16a34a;
+            --err: #dc2626;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        .wrap {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 24px 18px 48px;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin: 0 0 4px;
+        }
+
+        .sub {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 18px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .card h2 {
+            font-size: 14px;
+            margin: 0 0 12px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: var(--muted);
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #eef2ff;
+            color: #3730a3;
+            border: 1px solid #e0e7ff;
+        }
+
+        .chip.on {
+            background: #dcfce7;
+            color: #166534;
+            border-color: #bbf7d0;
+        }
+
+        .chip.off {
+            background: #fee2e2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        textarea,
+        input,
+        select {
+            width: 100%;
+            font: inherit;
+            padding: 9px 11px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #fff;
+            color: inherit;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: end;
+            margin-top: 12px;
+        }
+
+        .row>.field {
+            flex: 1 1 120px;
+        }
+
+        button {
+            font: inherit;
+            font-weight: 600;
+            padding: 9px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            background: #fff;
+            cursor: pointer;
+        }
+
+        button.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        button:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+
+        .log {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 12px;
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 90px;
+            max-height: 260px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+
+        .log .ok {
+            color: #86efac;
+        }
+
+        .log .err {
+            color: #fca5a5;
+        }
+
+        .log .dim {
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <h1>🔊 backend-tts</h1>
+        <div class="sub">
+            Service Text-to-Speech kiosk (engine <b>edge</b>, voice
+            <b>id-ID-GadisNeural</b>) — dipanggil melalui URL
+            <code>/call</code>, <code>/speak</code>, dan <code>/stop</code>.
+        </div>
+
+        <div class="card">
+            <h2>Status</h2>
+            <div class="chips" id="status">
+                <span class="chip">menghubungi…</span>
+            </div>
+            <div class="row">
+                <div class="field">
+                    <label for="token">Token (bila service dijalankan dengan <code>--token</code>)</label>
+                    <input id="token" type="password" placeholder="kosongkan bila tidak ada" autocomplete="off" />
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Uji suara (teks bebas)</h2>
+            <textarea id="text"
+                placeholder="Contoh: Selamat pagi, mohon perhatian. Nomor antrian A, nol, nol, lima, silakan menuju loket dua."></textarea>
+            <div class="row">
+                <div class="field" style="flex:0 0 110px">
+                    <label for="repeat">Pengulangan</label>
+                    <select id="repeat">
+                        <option value="1">1x</option>
+                        <option value="2">2x</option>
+                        <option value="3">3x</option>
+                    </select>
+                </div>
+                <button class="primary" id="btn-speak">Dengarkan</button>
+                <button id="btn-stop">Hentikan</button>
+                <button id="btn-sample">Contoh teks</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Uji panggilan nomor antrian</h2>
+            <div class="row">
+                <div class="field">
+                    <label for="number">Nomor</label>
+                    <input id="number" value="A003" />
+                </div>
+                <div class="field">
+                    <label for="counter">Loket</label>
+                    <input id="counter" value="1" />
+                </div>
+                <div class="field">
+                    <label for="service">Layanan</label>
+                    <input id="service" value="Umum" />
+                </div>
+                <button class="primary" id="btn-call">Panggil</button>
+            </div>
+            <div class="hint">
+                Teks dirakit dari template: nomor dieja per digit agar jelas di ruang tunggu.
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Log</h2>
+            <div class="log" id="log"><span class="dim">—</span></div>
+        </div>
+    </div>
+
+    <script>
+        const $ = (id) => document.getElementById(id);
+        const logBox = $("log");
+
+        const SAMPLE = [
+            "Selamat pagi, mohon perhatian.",
+            "Nomor antrian A, nol, nol, lima, silakan menuju loket dua.",
+            "Terima kasih atas kesabaran Anda menunggu.",
+        ].join(" ");
+
+        $("token").value = localStorage.getItem("kiosk-token") || "";
+        $("token").addEventListener("input", () => localStorage.setItem("kiosk-token", $("token").value));
+
+        function log(message, kind) {
+            const line = document.createElement("div");
+            if (kind) line.className = kind;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logBox.appendChild(line);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function withToken(path) {
+            const token = $("token").value.trim();
+            if (!token) return path;
+            const url = new URL(path, location.origin);
+            url.searchParams.set("token", token);
+            return url.pathname + url.search;
+        }
+
+        async function call(path) {
+            const response = await fetch(withToken(path));
+            let body;
+            try { body = await response.json(); } catch { body = {}; }
+            if (!response.ok || body.ok === false) {
+                throw new Error(body.message || `HTTP ${response.status}`);
+            }
+            return body;
+        }
+
+        async function refreshStatus() {
+            try {
+                const data = await call("/health");
+                const chips = [
+                    ["engine: " + data.engine, "chip"],
+                    ["voice: " + data.voice, "chip"],
+                    ["pemutar: " + (data.player || "?"), "chip"],
+                    [data.speaking ? "🔊 sedang berbicara" : "⏸ diam", "chip " + (data.speaking ? "on" : "")],
+                    ["antrian: " + data.queued, "chip"],
+                    [data.authRequired ? "token aktif" : "tanpa token", "chip"],
+                ];
+                $("status").innerHTML = chips
+                    .map(([text, cls]) => `<span class="${cls}">${text}</span>`)
+                    .join("");
+            } catch (error) {
+                $("status").innerHTML = `<span class="chip off">offline: ${error.message}</span>`;
+            }
+        }
+
+        async function speak() {
+            const text = $("text").value.trim();
+            if (!text) return;
+            const repeat = $("repeat").value;
+            try {
+                const data = await call(`/speak?text=${encodeURIComponent(text)}&repeat=${repeat}`);
+                log(`${data.message} (${data.length} karakter, ${data.repeat}x)`, "ok");
+            } catch (error) {
+                log(error.message, "err");
+            }
+        }
+
+        async function stop() {
+            try {
+                const data = await call("/stop");
+                log(data.message, "ok");
+            } catch (error) {
+                log(error.message, "err");
+            }
+        }
+
+        async function announce() {
+            const number = $("number").value.trim();
+            const counter = $("counter").value.trim();
+            const service = $("service").value.trim();
+            if (!number) return;
+            const url = `/call?number=${encodeURIComponent(number)}` +
+                `&counter=${encodeURIComponent(counter)}` +
+                `&service=${encodeURIComponent(service)}` +
+                `&repeat=${$("repeat").value}`;
+            try {
+                const data = await call(url);
+                log(`Panggil → "${data.text}"`, "ok");
+            } catch (error) {
+                log(error.message, "err");
+            }
+        }
+
+        $("btn-speak").addEventListener("click", speak);
+        $("btn-stop").addEventListener("click", stop);
+        $("btn-call").addEventListener("click", announce);
+        $("btn-sample").addEventListener("click", () => { $("text").value = SAMPLE; });
+        $("text").addEventListener("keydown", (event) => {
+            if (event.ctrlKey && event.key === "Enter") speak();
+        });
+
+        refreshStatus();
+        setInterval(refreshStatus, 5000);
+    </script>
+</body>
+
+</html>
